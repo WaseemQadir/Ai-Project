@@ -1,0 +1,454 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>AI Prescription Explainer</title>
+</head>
+<body>
+
+<h2>🏥 AI Prescription Explainer</h2>
+
+<form method="POST">
+    <textarea name="text" rows="5" cols="40" placeholder="Enter medicine names"></textarea>
+    <br><br>
+    <button type="submit">Explain</button>
+</form>
+
+<hr>
+
+<h3>Result:</h3>
+<p>{{ result }}</p>
+
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Prescription Explainer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:        #0F6E56;
+      --teal-mid:    #1D9E75;
+      --teal-light:  #E1F5EE;
+      --teal-border: #9FE1CB;
+      --teal-dark:   #085041;
+      --coral:       #D85A30;
+      --coral-light: #FAECE7;
+      --coral-border:#F5C4B3;
+      --amber-light: #FAEEDA;
+      --amber-border:#FAC775;
+      --amber-text:  #854F0B;
+      --gray-bg:     #F1EFE8;
+      --gray-border: #D3D1C7;
+      --text:        #2C2C2A;
+      --text-muted:  #5F5E5A;
+      --white:       #ffffff;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #f7f6f2;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .app { width: 100%; max-width: 620px; }
+
+    /* HEADER */
+    .header {
+      display: flex; align-items: flex-start; gap: 1rem;
+      margin-bottom: 2rem; padding-bottom: 1.5rem;
+      border-bottom: 0.5px solid var(--gray-border);
+    }
+    .logo {
+      width: 48px; height: 48px; background: var(--teal);
+      border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .logo svg { width: 24px; height: 24px; fill: none; stroke: white; stroke-width: 1.8; }
+    .header-text h1 {
+      font-family: 'Instrument Serif', serif; font-size: 24px; font-weight: 400;
+      color: var(--text); line-height: 1.2; margin-bottom: 5px;
+    }
+    .header-text p { font-size: 13px; color: var(--text-muted); line-height: 1.55; }
+
+    /* CARD */
+    .card {
+      background: var(--white); border: 0.5px solid var(--gray-border);
+      border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem;
+    }
+
+    /* LABEL */
+    .field-label {
+      font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; display: block;
+    }
+
+    /* TEXTAREA */
+    .rx-textarea {
+      width: 100%; min-height: 130px; padding: 14px 16px;
+      background: var(--teal-light); border: 0.5px solid var(--teal-border);
+      border-radius: 12px; font-family: 'DM Sans', sans-serif;
+      font-size: 14px; color: var(--text); resize: vertical;
+      line-height: 1.7; outline: none; transition: border-color 0.15s;
+    }
+    .rx-textarea:focus { border-color: var(--teal-mid); }
+    .rx-textarea::placeholder { color: #5DCAA5; font-style: italic; }
+
+    /* CHIPS */
+    .chips-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 999px;
+      border: 0.5px solid var(--gray-border);
+      font-size: 13px; cursor: pointer; background: var(--white);
+      color: var(--text-muted); transition: all 0.15s;
+      user-select: none; font-family: 'DM Sans', sans-serif;
+    }
+    .chip svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+    .chip.active { background: var(--teal); border-color: var(--teal); color: white; }
+
+    /* BUTTON */
+    .submit-btn {
+      width: 100%; padding: 14px; background: var(--teal);
+      border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+      color: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.15s; margin-top: 0.25rem;
+    }
+    .submit-btn:hover { opacity: 0.88; }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .submit-btn svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2; }
+
+    /* RESULTS */
+    .result-card { display: none; }
+    .result-card.visible { display: block; }
+
+    .result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+    .result-header svg { width: 15px; height: 15px; stroke: var(--teal); fill: none; stroke-width: 2; }
+    .result-header span {
+      font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--teal);
+    }
+
+    .lang-tabs {
+      display: flex; margin-bottom: 1.25rem;
+      border: 0.5px solid var(--gray-border); border-radius: 8px;
+      overflow: hidden; width: fit-content;
+    }
+    .lang-tab {
+      padding: 7px 20px; font-size: 13px; cursor: pointer;
+      background: transparent; border: none;
+      font-family: 'DM Sans', sans-serif; color: var(--text-muted); transition: all 0.15s;
+    }
+    .lang-tab.active { background: var(--teal); color: white; }
+
+    .result-body { font-size: 14px; line-height: 1.85; color: var(--text); }
+    .result-body .raw { white-space: pre-wrap; }
+    .urdu {
+      font-size: 16px; line-height: 2.2; direction: rtl; text-align: right;
+      font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
+    }
+
+    /* FORMATTED OUTPUT */
+    .med-block { margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 0.5px solid var(--gray-border); }
+    .med-block:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .med-name {
+      font-family: 'Instrument Serif', serif; font-size: 18px; font-weight: 400;
+      color: var(--teal-dark); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .med-name::before {
+      content: ''; display: inline-block; width: 8px; height: 8px;
+      background: var(--teal); border-radius: 50%; flex-shrink: 0;
+    }
+    .detail-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: flex-start; padding-left: 16px; }
+    .detail-label {
+      font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+      color: var(--teal); background: var(--teal-light); border-radius: 4px;
+      padding: 2px 7px; white-space: nowrap; margin-top: 2px; flex-shrink: 0;
+    }
+    .detail-value { font-size: 13px; color: var(--text); line-height: 1.65; }
+    .plain-para { font-size: 14px; line-height: 1.85; color: var(--text); white-space: pre-wrap; }
+
+    /* LOADING */
+    .dots { display: flex; gap: 5px; align-items: center; padding: 1.25rem 0; }
+    .dot { width: 7px; height: 7px; background: var(--teal); border-radius: 50%; animation: bounce 1.1s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.18s; }
+    .dot:nth-child(3) { animation-delay: 0.36s; }
+    @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
+
+    /* ALERTS */
+    .disclaimer {
+      background: var(--amber-light); border: 0.5px solid var(--amber-border);
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 12px; color: var(--amber-text); line-height: 1.55; margin-top: 1rem;
+    }
+    .error-box {
+      background: var(--coral-light); border: 0.5px solid var(--coral-border);
+      border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--coral); line-height: 1.55;
+    }
+
+
+
+    /* DEV CARD */
+    .dev-card {
+      position: fixed; bottom: 18px; right: 18px;
+      background: var(--white); border: 0.5px solid var(--gray-border);
+      border-radius: 12px; padding: 10px 14px 10px 10px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+      z-index: 999; text-decoration: none;
+    }
+    .dev-card img {
+      width: 38px; height: 38px; border-radius: 50%;
+      object-fit: cover; border: 2px solid var(--teal-light); flex-shrink: 0;
+    }
+    .dev-info { line-height: 1.3; }
+    .dev-info .dev-name { font-size: 13px; font-weight: 500; color: var(--text); }
+    .dev-info .dev-role { font-size: 11px; color: var(--text-muted); }
+
+    @media (max-width: 480px) {
+      body { padding: 1rem 0.75rem 3rem; }
+      .header-text h1 { font-size: 20px; }
+      .card { padding: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+    </div>
+    <div class="header-text">
+      <h1>AI Prescription Explainer</h1>
+      <p>Understand your medicines in plain English &amp; Urdu — usage, timing, and precautions.</p>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="card">
+    <label class="field-label">Prescription / Medicine Names</label>
+    <textarea class="rx-textarea" id="rxInput"
+      placeholder="e.g.&#10;Paracetamol 500mg — twice daily&#10;Amoxicillin 250mg — three times a day&#10;Omeprazole 20mg — before meals"></textarea>
+
+    <div style="margin-top: 1.25rem;">
+      <label class="field-label">Explain in</label>
+      <div class="chips-row">
+        <div class="chip active" data-lang="english" onclick="toggleLang(this)">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> English
+        </div>
+        <div class="chip active" data-lang="urdu" onclick="toggleLang(this)">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> اردو (Urdu)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="submit-btn" id="explainBtn" onclick="explainPrescription()">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Explain My Prescription
+  </button>
+
+  <!-- RESULTS -->
+  <div class="card result-card" id="resultSection" style="margin-top: 1rem;">
+    <div class="result-header">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>Explanation</span>
+    </div>
+    <div class="lang-tabs" id="langTabs"></div>
+    <div class="result-body" id="resultContent"></div>
+    <div class="disclaimer">
+      ⚠️ This is AI-generated information for educational purposes only. Always follow your doctor's instructions. Consult a healthcare professional for medical advice.
+    </div>
+  </div>
+
+
+</div>
+
+<!-- DEV CARD -->
+<div class="dev-card">
+  <img src="{{ url_for('static', filename='profile.jpg') }}" alt="Developer"/>
+  <div class="dev-info">
+    <div class="dev-name">Waseem Qadir</div>
+    <div class="dev-role">AI Student | Developer</div>
+  </div>
+</div>
+
+<script>
+  let wantEnglish = true;
+  let wantUrdu    = true;
+  let resultData  = { english: '', urdu: '' };
+
+  function toggleLang(el) {
+    el.classList.toggle('active');
+    wantEnglish = document.querySelector('[data-lang="english"]').classList.contains('active');
+    wantUrdu    = document.querySelector('[data-lang="urdu"]').classList.contains('active');
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function formatEnglish(text) {
+    if (!text) return '<em>Not requested.</em>';
+    const lines = text.split('\n');
+    let html = '';
+    let inBlock = false;
+    let blockHtml = '';
+
+    const flushBlock = () => {
+      if (inBlock) { html += `<div class="med-block">${blockHtml}</div>`; blockHtml = ''; inBlock = false; }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i].trim();
+      if (!line) continue;
+
+      // Medicine heading: ### Name or **Name** or lines ending with : that look like a title
+      const isHeading = /^#{1,3}\s/.test(line) || /^\*\*[^*]+\*\*\s*$/.test(line) ||
+                        (/^[A-Z][A-Za-z0-9 ()]+:?\s*$/.test(line) && line.length < 60 && !line.startsWith('-'));
+
+      if (isHeading) {
+        flushBlock();
+        inBlock = true;
+        const name = line.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, '').replace(/:$/, '').trim();
+        blockHtml += `<div class="med-name">${escapeHtml(name)}</div>`;
+        continue;
+      }
+
+      // Bullet or dash line
+      const bulletMatch = line.match(/^[-*•]\s+(.+)/);
+      if (bulletMatch) {
+        const content = bulletMatch[1];
+        // Check if it has a label like "Usage:", "Timing:", "Precautions:"
+        const labelMatch = content.match(/^\*?\*?([A-Za-z ]+)\*?\*?:\s*(.+)/);
+        if (labelMatch && labelMatch[1].length < 25) {
+          blockHtml += `<div class="detail-row">
+            <span class="detail-label">${escapeHtml(labelMatch[1].trim())}</span>
+            <span class="detail-value">${escapeHtml(labelMatch[2].trim())}</span>
+          </div>`;
+        } else {
+          blockHtml += `<div class="detail-row">
+            <span class="detail-value">• ${escapeHtml(content)}</span>
+          </div>`;
+        }
+        continue;
+      }
+
+      // Label line like "Usage: ..." without bullet
+      const labelLine = line.match(/^\*?\*?([A-Za-z ]{2,20})\*?\*?:\s*(.+)/);
+      if (labelLine) {
+        blockHtml += `<div class="detail-row">
+          <span class="detail-label">${escapeHtml(labelLine[1].trim())}</span>
+          <span class="detail-value">${escapeHtml(labelLine[2].trim())}</span>
+        </div>`;
+        continue;
+      }
+
+      // Plain text
+      if (inBlock) {
+        blockHtml += `<div class="detail-row"><span class="detail-value">${escapeHtml(line)}</span></div>`;
+      } else {
+        html += `<p class="plain-para">${escapeHtml(line)}</p>`;
+      }
+    }
+
+    flushBlock();
+    return html || `<p class="plain-para">${escapeHtml(text)}</p>`;
+  }
+
+  function showTab(lang) {
+    document.querySelectorAll('.lang-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.tab === lang)
+    );
+    const el = document.getElementById('resultContent');
+    if (lang === 'urdu') {
+      el.innerHTML = `<div class="urdu">${resultData.urdu || '<em>Not requested.</em>'}</div>`;
+    } else {
+      el.innerHTML = formatEnglish(resultData.english);
+    }
+  }
+
+  function buildTabs() {
+    const tabs  = document.getElementById('langTabs');
+    tabs.innerHTML = '';
+    const first = wantEnglish ? 'english' : 'urdu';
+    if (wantEnglish) {
+      const t = document.createElement('button');
+      t.className  = 'lang-tab' + (first === 'english' ? ' active' : '');
+      t.dataset.tab = 'english'; t.textContent = 'English';
+      t.onclick = () => showTab('english');
+      tabs.appendChild(t);
+    }
+    if (wantUrdu) {
+      const t = document.createElement('button');
+      t.className  = 'lang-tab' + (first === 'urdu' ? ' active' : '');
+      t.dataset.tab = 'urdu'; t.textContent = 'اردو';
+      t.onclick = () => showTab('urdu');
+      tabs.appendChild(t);
+    }
+    showTab(first);
+  }
+
+  async function explainPrescription() {
+    const rx = document.getElementById('rxInput').value.trim();
+
+    if (!rx)                       { alert('Please enter your prescription or medicine names.'); return; }
+    if (!wantEnglish && !wantUrdu) { alert('Please select at least one language.'); return; }
+
+    const btn     = document.getElementById('explainBtn');
+    const section = document.getElementById('resultSection');
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+    section.className = 'card result-card visible';
+    document.getElementById('langTabs').innerHTML = '';
+    document.getElementById('resultContent').innerHTML =
+      '<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+
+    try {
+      const resp = await fetch('/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: rx, english: wantEnglish, urdu: wantUrdu })
+      });
+
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+
+      resultData.english = data.english || '';
+      resultData.urdu    = data.urdu    || '';
+      buildTabs();
+
+    } catch (err) {
+      document.getElementById('resultContent').innerHTML =
+        `<div class="error-box"><strong>Error:</strong> ${err.message || 'Something went wrong. Please try again.'}</div>`;
+      document.getElementById('langTabs').innerHTML = '';
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:white;fill:none;stroke-width:2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      Explain My Prescription`;
+  }
+</script>
+
+</body>
+</html>
