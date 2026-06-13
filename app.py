@@ -5,10 +5,15 @@ import os
 
 app = Flask(__name__)
 
-client = OpenAI(
-    api_key=os.environ.get("API_key"),
-    base_url="https://openrouter.ai/api/v1"
-)
+# ADD THIS INSTEAD:
+def get_client():
+    api_key = os.environ.get("API_key")
+    if not api_key:
+        raise ValueError("API_key environment variable is not set")
+    return OpenAI(
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1"
+    )
 
 
 def explain_prescription(text, want_english=True, want_urdu=True):
@@ -40,7 +45,10 @@ Use simple, friendly language. Avoid jargon. Write as if explaining to a patient
 Prescription:
 {text}"""
 
-    response = client.chat.completions.create(
+
+    # REPLACE WITH:
+client = get_client()
+response = client.chat.completions.create(
         model="meta-llama/llama-3.1-8b-instruct:free",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
