@@ -5,7 +5,7 @@ import os
 
 app = Flask(__name__)
 
-# ADD THIS INSTEAD:
+
 def get_client():
     api_key = os.environ.get("API_key")
     if not api_key:
@@ -45,10 +45,8 @@ Use simple, friendly language. Avoid jargon. Write as if explaining to a patient
 Prescription:
 {text}"""
 
-
-    # REPLACE WITH:
-client = get_client()
-response = client.chat.completions.create(
+    client = get_client()
+    response = client.chat.completions.create(
         model="meta-llama/llama-3.1-8b-instruct:free",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
