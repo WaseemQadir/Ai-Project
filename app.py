@@ -1,67 +1,3 @@
-# from flask import Flask, render_template, request
-# from openai import OpenAI
-
-# app = Flask(__name__)
-
-
-# client = OpenAI(
-#     api_key="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",
-#     base_url="https://openrouter.ai/api/v1"
-# )
-
-# # client = OpenAI(api_key="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")
-
-
-# def explain_medicine(text):
-#     prompt = f"""
-# You are a medical assistant AI.
-
-# Explain the following prescription in:
-# 1. Simple English
-# 2. Simple Urdu
-
-# For each medicine include:
-# - Usage
-# - Timing
-# - Precautions
-
-# Prescription:
-# {text}
-# """
-
-#     response = client.chat.completions.create(
-#         model="gpt-4o-mini",
-#         messages=[{"role": "user", "content": prompt}]
-#     )
-
-#     return response.choices[0].message.content
-
-
-# @app.route("/", methods=["GET", "POST"])
-# def home():
-#     result = ""
-
-#     if request.method == "POST":
-#         text = request.form.get("text")
-
-#         if text:
-#             result = explain_medicine(text)
-
-#     return render_template("index.html", result=result)
-
-
-# if __name__ == "__main__":
-#     app.run(debug=True)
-
-
-
-
-# Put your Anthropic API key here OR set it as an environment variable
-# ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "sk-ant-api03-YOUR-KEY-HERE")
-
-# client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
 import re
@@ -70,14 +6,9 @@ import os
 app = Flask(__name__)
 
 client = OpenAI(
-    api_key=os.environ.get("openrouter_key"),
+    api_key=os.environ.get("API_key"),
     base_url="https://openrouter.ai/api/v1"
 )
-
-# client = OpenAI(
-#     api_key="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",
-#     base_url="https://openrouter.ai/api/v1"
-# )
 
 
 def explain_prescription(text, want_english=True, want_urdu=True):
@@ -110,7 +41,7 @@ Prescription:
 {text}"""
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="openai/gpt-4o-mini",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -156,6 +87,5 @@ def explain():
         return jsonify({"error": str(e)}), 500
 
 
-# Updated ✅
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7860)
